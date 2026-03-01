@@ -1,5 +1,6 @@
 # S.T.A.L.K.E.R G.A.M.M.A Community Linux Install/Setup shell scripts
 (STILL EXPERIMENTAL AND WORK IN PROGRESS)
+
 Community made scripts made to semi-automatically install gamma and  set up a bottle to play the game on Linux systems.
 
 Includes a step-by-step guide.
@@ -7,7 +8,7 @@ Includes a step-by-step guide.
 # Guide
 ## Step 0 - Obtaining dependencies to run the scripts
 
-For scripts to work it will need libraries/packages that it uses.
+For scripts to work it will need libraries and packages for funcitons that the scripts calls for.
 
 - **For Ubuntu/Debian systems:**
 ```
@@ -155,3 +156,14 @@ This was the last step of the setup gamma scripted actions, so your bottle setup
 - add feature - stalker-gamma-cli update check and update apply via the script
 - install game option available only if no game detected
 - setup available only if no setup done
+- detect and delete old bottle is "setup gamma" ran again
+  
+## Acknowledgements
+
+Special thanks to:
+
+- [Red007Master](https://github.com/Red007Master)
+  (Code cleanup, log functionality, general code improvements)
+- [FaithBeam](https://github.com/FaithBeam)
+  (Collaboration - making a static latest build release for `stalker-gamma-cli`)
+

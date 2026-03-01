@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.5"
+SCRIPT_VERSION="1.4"
+SCRIPT_GIT_VERSION="r$(git rev-list --count HEAD).$(git rev-parse --short HEAD)"
 GAMMA_DIR="$(pwd)"
 LOG_FILE_NAME="gamma-scripts$(date --utc +%Y-%m-%dT%H:%M:%S%Z).log"
 LOG_FOLDER="$GAMMA_DIR/logs"
 LOG_FILE="$LOG_FOLDER/$LOG_FILE_NAME"
-set -Eeuo pipefail
 SCRIPT_NAME="$(basename "$0")"
 START_TIME="$(date +%s)"
 # ---- User vars ----
@@ -33,13 +33,15 @@ BOTTLES_RUNNER_WINE="$BOTTLES_RUNNER_PATH/$RUNNER_NAME/files/bin/wine"
 BOTTLES_RUNNER_WINETRICKS="$BOTTLES_RUNNER_PATH/$RUNNER_NAME/protonfixes/winetricks"
 TROUBLESOME_DISTROS=(bobrkurwa goyim_os)
 
+# ---- Core Init ----
+set -Eeuo pipefail
+
 install_init() {
     run_command source /etc/os-release
     run_command cd $GAMMA_DIR
 
     log "install_Init: starting initialization"
     log cyan "install_Init: Work variables:"
-    log cyan "install_Init Script version is [$SCRIPT_VERSION]"
     log cyan "install_Init: [DOWNLOAD_THREADS] is [${DOWNLOAD_THREADS}]"
     log cyan "install_Init: [GAMMA_FOLDER] is [${GAMMA_FOLDER}]"
     log cyan "install_Init: [ANOMALY_FOLDER] is [${ANOMALY_FOLDER}]"
@@ -54,7 +56,6 @@ setup_init() {
 
     log "setup_init: starting initialization"
     log cyan "setup_init: Work variables:"
-    log cyan "setup_init: Script version is [$SCRIPT_VERSION]"
     log cyan "setup_init: [GAMMA_DIR] is [${GAMMA_DIR}]"
     log cyan "setup_init: [LOG_FILE] is [${LOG_FILE}]"
     log cyan "setup_init: [BOTTLE_NAME] is [${BOTTLE_NAME}]"
@@ -277,6 +278,7 @@ greet() {
     log "-------------------------------------------------------"
     log "Stalker GAMMA community install/setup shell scripts"
     log "version: [$SCRIPT_VERSION]"
+    log "git version (commit): [$SCRIPT_GIT_VERSION]"
     log "For ducumentation see:"
     log "https://github.com/ViridiLV/gamma-scripts/"
     log "-------------------------------------------------------"
@@ -316,6 +318,11 @@ user_chooses() {
 
 # ---- Utility functions ----
 log() {
+    if [ ! -d $LOG_FOLDER ]; then
+        echo "Log folder not found, creating..."
+        mkdir -pv $LOG_FOLDER
+    fi
+
     local color_reset="\033[0m"
     local color=""
     local message=""
@@ -351,10 +358,6 @@ die() {
 }
 
 run_command() {
-    if [ ! -d $LOG_FOLDER ]; then
-        echo "Log folder not found, creating..."
-        mkdir -pv $LOG_FOLDER
-    fi
     log magenta "Running Command: [$*]" | tee -a "$LOG_FILE"
     eval "$@"
 }

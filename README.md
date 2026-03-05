@@ -12,12 +12,12 @@ For scripts to work it will need libraries and packages for funcitons that the s
 
 - **For Ubuntu/Debian systems:**
 ```
-apt install flatpak curl tar
+apt install flatpak curl tar git
 ```
 
 - **For Arch-based systems:**
 ```
-sudo pacman -S flatpak curl tar
+sudo pacman -S flatpak curl tar git
 ```
 
 ## Step 1 - getting the scripts

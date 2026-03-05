@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.4"
+SCRIPT_VERSION="1.7"
 SCRIPT_GIT_VERSION="r$(git rev-list --count HEAD).$(git rev-parse --short HEAD)"
 GAMMA_DIR="$(pwd)"
 LOG_FILE_NAME="gamma-scripts$(date --utc +%Y-%m-%dT%H:%M:%S%Z).log"
@@ -127,6 +127,29 @@ setup_flatpak_perms() {
         run_command flatpak override com.usebottles.bottles --filesystem=host 2> >(tee -a "$LOG_FILE" >&2)
     fi
 }
+setup_prepare() {
+    log cyan "setup_prepare: Checking if conditioins met for making a new bottle"
+    run_command cd ~/.var/app/com.usebottles.bottles/data/bottles/bottles
+    if [ -d "$BOTTLE_NAME" ]; then
+        log red "Preexisting bottle $BOTTLE_NAME does exist already."
+        log yellow "Deleteing preexisting bottle $BOTTLE_NAME..."
+        run_command rm -rd $BOTTLE_NAME
+        log cyan "printing directory for debug log purposes..."
+        run_command ls
+    else
+        log green "Preexisting bottle $BOTTLE_NAME does NOT exist."
+    fi
+    if [ -d "${BOTTLE_NAME}_157" ]; then
+        log red "Preexisting bottle "${BOTTLE_NAME}_157" name variation ending in _157 does exist already."
+        log yellow "Deleteing preexisting bottle "${BOTTLE_NAME}_157" ..."
+        run_command rm -rd "${BOTTLE_NAME}_157"
+        log cyan "printing directory for debug log purposes..."
+        run_command ls
+    else
+        log green "Preexisting bottle "$BOTTLE_NAME"_157 does NOT exist."
+    fi
+    log cyan "setup_prepare: moving on"
+}
 setup_bottles_makebottle() {
     log cyan "setup_bottles_makebottle: Making a bottle for the game"
     run_command flatpak run --command=bottles-cli com.usebottles.bottles new --bottle-name "$BOTTLE_NAME" --environment gaming --runner "$RUNNER_NAME" > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
@@ -139,7 +162,7 @@ setup_bottles_configure() {
 }
 setup_prefix_configure() {
     log "setup_prefix_configure: Installing dependencies"
-    if [ $WINEFIX==1 ]; then
+    if [ $WINEFIX==true ]; then
         run_command WINE=~/"$BOTTLES_RUNNER_WINE" WINEPREFIX=~/"$BOTTLES_PREFIX_PATH" ~/$BOTTLES_RUNNER_WINETRICKS cmd d3dx9 dx8vb d3dcompiler_42 d3dcompiler_43 d3dcompiler_46 d3dcompiler_47 d3dx10_43 d3dx10 d3dx11_42 d3dx11_43 dxvk quartz > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
     else
         run_command WINEPREFIX=~/"$BOTTLES_PREFIX_PATH" ~/$BOTTLES_RUNNER_WINETRICKS cmd d3dx9 dx8vb d3dcompiler_42 d3dcompiler_43 d3dcompiler_46 d3dcompiler_47 d3dx10_43 d3dx10 d3dx11_42 d3dx11_43 dxvk quartz >> >(tee "$LOG_FILE") > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
@@ -147,7 +170,7 @@ setup_prefix_configure() {
 }
 setup_prefix_verify() {
     log cyan "setup_prefix_verify: Listing detected dependencies, might be useful for debugging, might be bugged"
-    if [ $WINEFIX==1 ]; then
+    if [ $WINEFIX==true ]; then
         run_command WINE=~/"$BOTTLES_RUNNER_WINE" WINEPREFIX=~/"$BOTTLES_PREFIX_PATH" ~/$BOTTLES_RUNNER_WINETRICKS list-installed > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
     else
         run_command WINEPREFIX=~/"$BOTTLES_PREFIX_PATH" ~/$BOTTLES_RUNNER_WINETRICKS list-installed > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
@@ -263,6 +286,7 @@ setup() {
     setup_bottles_check_if_inital_setup_done
     setup_bottles_get_dll
     setup_runner_install
+    setup_prepare
     setup_bottles_makebottle
     setup_bottles_configure
     setup_prefix_configure

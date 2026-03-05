@@ -155,8 +155,7 @@ This was the last step of the setup gamma scripted actions, so your bottle setup
 - ~~add feature - update/download latest stalker-gamma-cli only~~
 - add feature - stalker-gamma-cli update check and update apply via the script
 - install game option available only if no game detected
-- setup available only if no setup done
-- detect and delete old bottle is "setup gamma" ran again
+- ~~detect and delete old bottle if "setup gamma" ran again~~
   
 ## Acknowledgements
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-SCRIPT_VERSION="1.7"
+SCRIPT_VERSION="1.8"
 SCRIPT_GIT_VERSION="r$(git rev-list --count HEAD).$(git rev-parse --short HEAD)"
-GAMMA_DIR="$(pwd)"
+GAMMA_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 LOG_FILE_NAME="gamma-scripts$(date --utc +%Y-%m-%dT%H:%M:%S%Z).log"
 LOG_FOLDER="$GAMMA_DIR/logs"
 LOG_FILE="$LOG_FOLDER/$LOG_FILE_NAME"
@@ -15,6 +15,7 @@ CACHE_FOLDER="cache"
 WINEFIX=true
 BOTTLE_NAME="StalkerGAMMA"
 LAUNCHER_NAME="ModOrganizer"
+MCM_FOLDER_NAME="G.A.M.M.A. MCM values - Rename to keep your personal changes"
 # ---- Global vars ----
 SCRIPT_NAME="$(basename "$0")"
 START_TIME="$(date +%s)"
@@ -162,7 +163,7 @@ setup_bottles_configure() {
 }
 setup_prefix_configure() {
     log "setup_prefix_configure: Installing dependencies"
-    if [ $WINEFIX==true ]; then
+    if [ "$WINEFIX" == "true" ]; then
         run_command WINE=~/"$BOTTLES_RUNNER_WINE" WINEPREFIX=~/"$BOTTLES_PREFIX_PATH" ~/$BOTTLES_RUNNER_WINETRICKS cmd d3dx9 dx8vb d3dcompiler_42 d3dcompiler_43 d3dcompiler_46 d3dcompiler_47 d3dx10_43 d3dx10 d3dx11_42 d3dx11_43 dxvk quartz > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
     else
         run_command WINEPREFIX=~/"$BOTTLES_PREFIX_PATH" ~/$BOTTLES_RUNNER_WINETRICKS cmd d3dx9 dx8vb d3dcompiler_42 d3dcompiler_43 d3dcompiler_46 d3dcompiler_47 d3dx10_43 d3dx10 d3dx11_42 d3dx11_43 dxvk quartz >> >(tee "$LOG_FILE") > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
@@ -234,8 +235,26 @@ setup_bottles_get_dll() {
 }
 install_update_check() {
     run_command cd $GAMMA_DIR
-    log cyan "update_check: Commencing update check for verification"
+    log cyan "update_check: Commencing update check"
     run_command ./stalker-gamma*.AppImage update check > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
+}
+update_check() {
+    log "update_check: Commencing manual update check for gamma files"
+    install_update_check
+    log "update_check: processing finished"
+    local end_time
+    end_time="$(date +%s)"
+    log "main: action finished in $((end_time - START_TIME)) seconds"
+    user_chooses
+}
+update_apply() {
+    run_command cd $GAMMA_DIR
+    run_command ./stalker-gamma*.AppImage update apply > >(tee -a "$LOG_FILE") 2> >(tee -a "$LOG_FILE" >&2)
+    log "update_apply: processing finished"
+    local end_time
+    end_time="$(date +%s)"
+    log "main: action finished in $((end_time - START_TIME)) seconds"
+    user_chooses
 }
 install_full_install() {
     run_command cd $GAMMA_DIR
@@ -263,10 +282,29 @@ update_or_install_stalker_gamma_cli() {
     install_get_stalker_gamma_cli
     local end_time
     end_time="$(date +%s)"
-    log "Main: action finished in $((end_time - START_TIME)) seconds"
+    log "main: action finished in $((end_time - START_TIME)) seconds"
+    user_chooses
+}
+backup_saves() {
+    log cyan "backup_saves: Starting backup of save and settings files"
+    run_command cd $GAMMA_DIR/logs
+    backup_dir_name="saves_backup_$(date +%F)_$(date +%H_%M)"
+    run_command mkdir -vp "$backup_dir_name/$ANOMALY_FOLDER/appdata/savedgames"
+    run_command mkdir -vp "$backup_dir_name/$GAMMA_FOLDER/mods/'$MCM_FOLDER_NAME'"
+    log "backup_saves: Saving Anomaly user.ltx"
+    run_command cp -v "$GAMMA_DIR/$ANOMALY_FOLDER/appdata/user.ltx" "$GAMMA_DIR/logs/$backup_dir_name/$ANOMALY_FOLDER/appdata"
+    log "backup_saves: Saving save files"
+    run_command cp -Rv "$GAMMA_DIR/$ANOMALY_FOLDER/appdata/savedgames" "$GAMMA_DIR/logs/$backup_dir_name/$ANOMALY_FOLDER/appdata/"
+    log "backup_saves: Saving MCM folder"
+    run_command cp -Rv "$GAMMA_DIR/GAMMA/mods/'$MCM_FOLDER_NAME'" "$GAMMA_DIR/logs/$backup_dir_name/GAMMA/mods/"
+    log green "backup_saves: Saves backed up! See logs/ folder for the save folder named '$backup_dir_name'"
+    local end_time
+    end_time="$(date +%s)"
+    log "main: action finished in $((end_time - START_TIME)) seconds"
     user_chooses
 }
 install() {
+    log "install: Starting GAMMA install"
     run_command cd $GAMMA_DIR
     install_get_stalker_gamma_cli
     install_check_stalker_gamma_cli_version
@@ -275,7 +313,7 @@ install() {
     install_update_check
     local end_time
     end_time="$(date +%s)"
-    log "Main: action finished in $((end_time - START_TIME)) seconds"
+    log "main: action finished in $((end_time - START_TIME)) seconds"
     user_chooses
 }
 setup() {
@@ -294,7 +332,7 @@ setup() {
     log "setup: processing finished"
     local end_time
     end_time="$(date +%s)"
-    log "Main: action finished in $((end_time - START_TIME)) seconds"
+    log "main: action finished in $((end_time - START_TIME)) seconds"
     user_chooses
 }
 
@@ -307,13 +345,41 @@ greet() {
     log "https://github.com/ViridiLV/gamma-scripts/"
     log "-------------------------------------------------------"
     log "Possible actions:"
-    log "[1] - Install game files with stalker-gamma-cli"
+    log "[1] - Install game files with 'stalker-gamma-cli'"
     log "[2] - Setup flatpak GAMMA bottle"
-    log "[3] - Update/install stalker-gamma-cli"
-    log "[4] - Exit"
+    log "[3] - Update/re-download latest 'stalker-gamma-cli'"
+    if [ "$INSTALL_PRESENT"=="true" ]; then
+        log "[4] - Back up save and setting files"
+    else
+        log "[4] - Exit"
+    fi
+    if [ "$INSTALL_PRESENT" == "true" ] && [ "$STALKER_GAMMA_CLI_PRESENT" == "true" ]; then
+        log "[5] - Check GAMMA ('stalker-gamma-cli' update check)"
+        log "[6] - Update GAMMA ('stalker-gamma-cli' update apply)"
+        log "[7] - Exit"
+    fi
+    if [ "$INSTALL_PRESENT" == "true" ] && [ "$STALKER_GAMMA_CLI_PRESENT" == "false" ]; then
+        log "[5] - Exit"
+    fi
     log "-------------------------------------------------------"
 }
 user_chooses() {
+    run_command cd $GAMMA_DIR
+    log "-------------------------------------------------------"
+    if [ -d Anomaly ] && [ -d GAMMA ]; then
+        log "user_chooses: Anomaly and GAMMA directories found."
+        INSTALL_PRESENT=true
+    else
+        log "user_chooses: Anomaly and GAMMA directories found."
+        INSTALL_PRESENT=false
+    fi
+    if [ -f stalker-gamma.AppImage ]; then
+        log "user_chooses:  stalker-gamma-cli AppImage found."
+        STALKER_GAMMA_CLI_PRESENT=true
+    else
+        log "user_chooses:  stalker-gamma-cli AppImage not found."
+        STALKER_GAMMA_CLI_PRESENT=false
+    fi
     user_input_select=""
     selected=false
     while [ selected==false ]; do
@@ -332,7 +398,17 @@ user_chooses() {
         elif [ "$user_input_select" = "3" ]; then
             update_or_install_stalker_gamma_cli
             selected=true
-        elif [ "$user_input_select" = "4" ]; then
+        elif [ "$user_input_select" = "4" ] && [ "$INSTALL_PRESENT" == "true" ]; then
+            backup_saves
+        elif [ "$user_input_select" = "4" ] && [ "$INSTALL_PRESENT" == "false" ]; then
+            die_exit
+        elif [ "$user_input_select" = "5" ] && [ "$INSTALL_PRESENT" == "true" ] && [ "$STALKER_GAMMA_CLI_PRESENT" == "true" ]; then
+            update_check
+        elif [ "$user_input_select" = "6" ] && [ "$INSTALL_PRESENT" == "true" ] && [ "$STALKER_GAMMA_CLI_PRESENT" == "true" ]; then
+            update_apply
+        elif [ "$user_input_select" = "7" ] && [ "$INSTALL_PRESENT" == "true" ] && [ "$STALKER_GAMMA_CLI_PRESENT" == "true" ]; then
+            die_exit
+        elif [ "$user_input_select" = "5" ] && [ "$INSTALL_PRESENT" == "true" ] && [ "$STALKER_GAMMA_CLI_PRESENT" == "false" ]; then
             die_exit
         else
             log red "[${user_input_select}] - Not a valid input!"
@@ -389,9 +465,9 @@ run_command() {
 main() {
     run_command mkdir -p $GAMMA_DIR
     run_command cd $GAMMA_DIR
-    log "Main: script started (${SCRIPT_NAME})"
+    log "main: script started (${SCRIPT_NAME})"
     user_chooses
-    log "Main: unexpected script end. Input anything to exit. \o"
+    log "main: unexpected script end. Input anything to exit. \o"
     read -r user_input && exit
 }
 main "$@"

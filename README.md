@@ -150,12 +150,8 @@ This was the last step of the setup gamma scripted actions, so your bottle setup
 
 ## To Do list - planned changes and features
 
-- ~~migrate wget to curl~~
-- add feature - automated save and settings file backup via the script
-- ~~add feature - update/download latest stalker-gamma-cli only~~
-- add feature - stalker-gamma-cli update check and update apply via the script
-- install game option available only if no game detected
-- ~~detect and delete old bottle if "setup gamma" ran again~~
+- Testing on blank state VMs for issues
+- Documentation improvements
   
 ## Acknowledgements
 
